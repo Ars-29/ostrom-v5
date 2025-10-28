@@ -11,12 +11,31 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [showPlayButton, setShowPlayButton] = useState(false); // fallback if play() fails even after start
   const [isLandscape, setIsLandscape] = useState(false);
+  const [showAndroidTapHint, setShowAndroidTapHint] = useState(false);
   const { registerVideo, unregisterVideo } = useSound();
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth <= 768);
-      setIsLandscape(window.innerWidth > window.innerHeight);
+      // Dynamic mobile detection based on device capabilities
+      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      
+      // More sophisticated screen size detection
+      const screenWidth = window.innerWidth;
+      const screenHeight = window.innerHeight;
+      const isPortrait = screenWidth < screenHeight;
+      
+      // Mobile detection: touch device + reasonable screen size
+      // Portrait: width < 600px OR height < 900px
+      // Landscape: height < 600px OR width < 900px
+      const isSmallScreen = isPortrait ? 
+        (screenWidth < 600 || screenHeight < 900) :
+        (screenHeight < 600 || screenWidth < 900);
+      
+      // Additional check: ensure it's not a desktop with touch (like Surface)
+      const isDefinitelyMobile = isTouchDevice && isSmallScreen && screenWidth < 1024;
+      
+      setIsMobile(isDefinitelyMobile);
+      setIsLandscape(screenWidth > screenHeight);
     };
 
     handleResize();
@@ -55,18 +74,21 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
     }
   }, [hasStarted]);
 
-  // Handle body scroll locking and navbar hiding ONLY in landscape mode
+  // Handle body scroll locking and navbar hiding ONLY in landscape mode on mobile
   useEffect(() => {
-    if (isLandscape) {
+    if (isLandscape && isMobile) {
       // Scroll to top first to ensure proper positioning
       window.scrollTo({ top: 0, behavior: 'instant' });
       
-      // Request fullscreen mode automatically to hide browser UI
+      // Small delay to ensure browser is ready for fullscreen
       const requestFullscreen = async () => {
         const introElement = document.getElementById('intro-trigger');
         
-        // Detect iPhone/iOS Safari
+        // Detect iPhone/iOS Safari and Android
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isAndroid = /Android/.test(navigator.userAgent);
+        
+        console.log('Requesting fullscreen for:', { isIOS, isAndroid, isMobile, isLandscape });
         
         // Try multiple approaches aggressively
         const tryFullscreen = async (element: HTMLElement) => {
@@ -95,11 +117,27 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
           return false;
         };
 
-        // iPhone-specific approach: try video element directly
-        if (isIOS && videoRef.current) {
+        // Android-specific approach: try video element directly FIRST
+        if (isAndroid && videoRef.current) {
           try {
+            console.log('Trying Android webkitEnterFullscreen on video');
             if ((videoRef.current as any).webkitEnterFullscreen) {
               await (videoRef.current as any).webkitEnterFullscreen();
+              console.log('Android video fullscreen SUCCESS');
+              return;
+            }
+          } catch (error) {
+            console.log('Android video fullscreen failed:', error);
+          }
+        }
+
+        // iPhone-specific approach: try video element directly FIRST
+        if (isIOS && videoRef.current) {
+          try {
+            console.log('Trying iOS webkitEnterFullscreen on video');
+            if ((videoRef.current as any).webkitEnterFullscreen) {
+              await (videoRef.current as any).webkitEnterFullscreen();
+              console.log('iOS video fullscreen SUCCESS');
               return;
             }
           } catch (error) {
@@ -117,39 +155,107 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
         }
       };
       
-      // Try fullscreen immediately and retry periodically
+      // Try fullscreen immediately with a small delay to ensure browser readiness
+      setTimeout(() => {
+        requestFullscreen();
+      }, 100);
+      
+      // Also try immediately (in case the delay isn't needed)
       requestFullscreen();
       
       // iPhone-specific: Add user gesture listener for fullscreen
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isAndroid = /Android/.test(navigator.userAgent);
       let userGestureTriggered = false;
       
-      const handleIOSUserGesture = () => {
-        if (!userGestureTriggered && isIOS) {
+      const handleUserGesture = () => {
+        if (!userGestureTriggered && (isIOS || isAndroid)) {
           userGestureTriggered = true;
           requestFullscreen();
           // Remove listeners after first interaction
-          document.removeEventListener('touchstart', handleIOSUserGesture);
-          document.removeEventListener('click', handleIOSUserGesture);
+          document.removeEventListener('touchstart', handleUserGesture);
+          document.removeEventListener('click', handleUserGesture);
         }
       };
       
-      if (isIOS) {
-        document.addEventListener('touchstart', handleIOSUserGesture, { once: true });
-        document.addEventListener('click', handleIOSUserGesture, { once: true });
+      if (isIOS || isAndroid) {
+        document.addEventListener('touchstart', handleUserGesture, { once: true });
+        document.addEventListener('click', handleUserGesture, { once: true });
       }
       
-      // Retry fullscreen every 500ms for the first 3 seconds
+      // Retry fullscreen every 200ms for the first 5 seconds (more aggressive)
       const retryInterval = setInterval(() => {
         if (!document.fullscreenElement) {
+          console.log('Retrying fullscreen...');
           requestFullscreen();
         } else {
+          console.log('Fullscreen achieved!');
           clearInterval(retryInterval);
         }
-      }, 500);
+      }, 200);
       
-      // Clear retry after 3 seconds
-      setTimeout(() => clearInterval(retryInterval), 3000);
+      // Clear retry after 5 seconds
+      setTimeout(() => {
+        clearInterval(retryInterval);
+        console.log('Stopped retrying fullscreen');
+      }, 5000);
+      
+      // Show tap hint for Android devices after 1 second if not in fullscreen
+      if (isAndroid) {
+        setTimeout(() => {
+          if (!document.fullscreenElement) {
+            console.log('Showing Android tap hint');
+            setShowAndroidTapHint(true);
+          }
+        }, 1000);
+        
+        // For Android: Try multiple approaches to trigger fullscreen
+        setTimeout(() => {
+          if (!document.fullscreenElement) {
+            console.log('Android: Trying multiple fullscreen triggers');
+            
+            // 1. Focus the video element
+            if (videoRef.current) {
+              videoRef.current.focus();
+            }
+            
+            // 2. Create synthetic events
+            const touchEvent = new TouchEvent('touchstart', {
+              bubbles: true,
+              cancelable: true,
+              touches: [new Touch({
+                identifier: 0,
+                target: videoRef.current || document.body,
+                clientX: 0,
+                clientY: 0,
+                screenX: 0,
+                screenY: 0,
+                pageX: 0,
+                pageY: 0
+              })]
+            });
+            document.dispatchEvent(touchEvent);
+            
+            // Also try a click event
+            const clickEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              clientX: 0,
+              clientY: 0
+            });
+            if (videoRef.current) {
+              videoRef.current.dispatchEvent(clickEvent);
+            }
+            
+            // 3. Try fullscreen again after focus
+            setTimeout(() => {
+              if (!document.fullscreenElement) {
+                requestFullscreen();
+              }
+            }, 100);
+          }
+        }, 500);
+      }
       
       // Lock body scroll aggressively - iOS Safari specific fixes
       document.body.style.overflow = 'hidden';
@@ -190,10 +296,10 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
       }
       
       return () => {
-        // Clean up iOS event listeners
-        if (isIOS) {
-          document.removeEventListener('touchstart', handleIOSUserGesture);
-          document.removeEventListener('click', handleIOSUserGesture);
+        // Clean up iOS and Android event listeners
+        if (isIOS || isAndroid) {
+          document.removeEventListener('touchstart', handleUserGesture);
+          document.removeEventListener('click', handleUserGesture);
         }
         
         // Exit fullscreen mode
@@ -245,8 +351,8 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
           root.style.top = '';
         }
       };
-    } else {
-      // Portrait mode: immediately exit fullscreen and reset all styles
+    } else if (isMobile) {
+      // Portrait mode on mobile: immediately exit fullscreen and reset all styles
       
       // Exit fullscreen mode first - be aggressive about it
       const exitFullscreen = async () => {
@@ -314,11 +420,11 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
         root.style.top = '';
       }
     }
-  }, [isLandscape]);
+  }, [isLandscape, isMobile]);
 
   useEffect(() => {
-    // Don't use IntersectionObserver in landscape mode - video should play continuously
-    if (isLandscape) return;
+    // Don't use IntersectionObserver in landscape mode on mobile - video should play continuously
+    if (isLandscape && isMobile) return;
 
     const handleIntersection = (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
@@ -348,11 +454,11 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
         observer.unobserve(videoRef.current);
       }
     };
-  }, [hasStarted, isLandscape]);
+  }, [hasStarted, isLandscape, isMobile]);
 
-  // Ensure video plays continuously in landscape mode
+  // Ensure video plays continuously in landscape mode on mobile
   useEffect(() => {
-    if (isLandscape && hasStarted && videoRef.current) {
+    if (isLandscape && isMobile && hasStarted && videoRef.current) {
       const playPromise = videoRef.current.play();
       if (playPromise) {
         playPromise.catch((error) => {
@@ -361,10 +467,54 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
         });
       }
     }
-  }, [isLandscape, hasStarted]);
+  }, [isLandscape, isMobile, hasStarted]);
 
   const scrollToContent = () => {
     window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+  };
+
+  const handleAndroidTapHintClick = () => {
+    setShowAndroidTapHint(false);
+    // Try fullscreen again when user taps
+    if (videoRef.current) {
+      const requestFullscreen = async () => {
+        try {
+          console.log('Android tap hint clicked - trying fullscreen');
+          if (videoRef.current && (videoRef.current as any).webkitEnterFullscreen) {
+            await (videoRef.current as any).webkitEnterFullscreen();
+            console.log('Android tap hint fullscreen SUCCESS');
+          } else if (videoRef.current && videoRef.current.requestFullscreen) {
+            await videoRef.current.requestFullscreen();
+            console.log('Android tap hint requestFullscreen SUCCESS');
+          }
+        } catch (error) {
+          console.log('Android tap fullscreen failed:', error);
+        }
+      };
+      requestFullscreen();
+    }
+  };
+
+  const handleVideoClick = () => {
+    // Handle video click for fullscreen on mobile landscape
+    if (isLandscape && isMobile && videoRef.current) {
+      console.log('Video clicked in landscape mode - trying fullscreen');
+      
+      const requestFullscreen = async () => {
+        try {
+          if (videoRef.current && (videoRef.current as any).webkitEnterFullscreen) {
+            await (videoRef.current as any).webkitEnterFullscreen();
+            console.log('Video click fullscreen SUCCESS');
+          } else if (videoRef.current && videoRef.current.requestFullscreen) {
+            await videoRef.current.requestFullscreen();
+            console.log('Video click requestFullscreen SUCCESS');
+          }
+        } catch (error) {
+          console.log('Video click fullscreen failed:', error);
+        }
+      };
+      requestFullscreen();
+    }
   };
 
   const handlePlayClick = () => {
@@ -385,8 +535,27 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
         loop
         playsInline
         preload={isMobile ? "auto" : "metadata"}
+        onClick={handleVideoClick}
+        // Show native video controls in landscape mode on mobile (iOS & Android)
+        controls={isLandscape && isMobile}
+        controlsList="nodownload"
+        disablePictureInPicture={false}
+        // Additional attributes for better fullscreen support
+        webkit-playsinline="true"
+        x5-video-player-type="h5"
+        x5-video-player-fullscreen="true"
+        x5-video-orientation="landscape"
       ></video>
       
+      {/* Android tap hint for fullscreen */}
+      {isLandscape && isMobile && showAndroidTapHint && !document.fullscreenElement && (
+        <div className="intro__android-tap-hint" onClick={handleAndroidTapHintClick}>
+          <div className="hint-content">
+            <span className="hint-icon">📱</span>
+            <span className="hint-text">Tap video to hide browser UI</span>
+          </div>
+        </div>
+      )}
       
       {hasStarted && showPlayButton && (
         <div className="intro__play-button" onClick={handlePlayClick}>

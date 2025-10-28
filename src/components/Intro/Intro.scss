@@ -18,22 +18,24 @@
     }
   }
   
-  // Landscape mode styles - works on all devices
+  // Landscape mode styles - only on mobile devices (protected by media query)
   &.intro--landscape {
-    // Always hide navbar and disable scrolling in landscape mode
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important; // Slightly smaller to prevent cropping
-    z-index: 99999 !important;
-    background: #000;
-    overflow: hidden !important;
+    @media screen and (max-width: 1024px) {
+      // Always hide navbar and disable scrolling in landscape mode
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important; // Slightly smaller to prevent cropping
+      z-index: 99999 !important;
+      background: #000;
+      overflow: hidden !important;
+    }
   }
   
   // Portrait mode styles - keep normal behavior, height matches video exactly
   &.intro--portrait {
-    @media screen and (max-width: 767px) {
+    @media screen and (max-width: 1024px) {
       // Normal layout, navbar visible, scrollable
       position: relative;
       width: 100%;
@@ -75,34 +77,96 @@
     }
   }
   
-  // Landscape - always show full video without cropping on all devices
+  // Landscape - always show full video without cropping (mobile only)
   &.intro__video--landscape {
-    object-fit: contain !important;
-    width: 100vw !important;
-    height: calc(100vh - 3px) !important; // Slightly smaller to prevent cropping
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    transform: none !important;
-    z-index: 100000 !important;
-    
-    // iPhone Safari specific
-    @supports (-webkit-touch-callout: none) {
-      height: 100vh !important;
-      height: -webkit-fill-available !important;
-      -webkit-transform: translate3d(0, 0, 0) !important;
-      transform: translate3d(0, 0, 0) !important;
+    @media screen and (max-width: 1024px) {
+      object-fit: contain !important;
+      width: 100vw !important;
+      height: calc(100vh - 3px) !important; // Slightly smaller to prevent cropping
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      transform: none !important;
+      z-index: 100000 !important;
+      
+      // iPhone Safari specific
+      @supports (-webkit-touch-callout: none) {
+        height: 100vh !important;
+        height: -webkit-fill-available !important;
+        -webkit-transform: translate3d(0, 0, 0) !important;
+        transform: translate3d(0, 0, 0) !important;
+      }
+      
+      // Additional Android Chrome fixes
+      -webkit-touch-callout: none !important;
+      -webkit-user-select: none !important;
+      -khtml-user-select: none !important;
+      -moz-user-select: none !important;
+      -ms-user-select: none !important;
+      user-select: none !important;
+      
+      // Allow native video controls in landscape mode (iOS & Android style)
+      &::-webkit-media-controls {
+        display: flex !important;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+      
+      &:hover::-webkit-media-controls,
+      &:focus::-webkit-media-controls,
+      &:active::-webkit-media-controls {
+        opacity: 1;
+      }
+      
+      &::-webkit-media-controls-panel {
+        display: flex !important;
+        background: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(10px);
+      }
+      
+      // Style individual controls for better visibility
+      &::-webkit-media-controls-play-button,
+      &::-webkit-media-controls-pause-button,
+      &::-webkit-media-controls-timeline,
+      &::-webkit-media-controls-current-time-display,
+      &::-webkit-media-controls-time-remaining-display,
+      &::-webkit-media-controls-fullscreen-button,
+      &::-webkit-media-controls-volume-slider {
+        display: flex !important;
+        color: white;
+        filter: brightness(1.2);
+      }
     }
   }
   
   // Portrait - normal behavior with auto height (no black bars)
   &.intro__video--portrait {
-    @media screen and (max-width: 767px) {
+    @media screen and (max-width: 1024px) {
       position: relative;
       width: 100%;
       height: auto;
       display: block;
       object-fit: contain;
+      
+      // Hide controls in portrait mode
+      &::-webkit-media-controls {
+        display: none !important;
+      }
+      
+      &::-webkit-media-controls-panel {
+        display: none !important;
+      }
+    }
+  }
+  
+  // Hide controls on desktop
+  @media screen and (min-width: 1025px) {
+    &::-webkit-media-controls {
+      display: none !important;
+    }
+    
+    &::-webkit-media-controls-panel {
+      display: none !important;
     }
   }
 }
@@ -195,10 +259,12 @@
     bottom: 20px;
   }
   
-  // Hide arrow in fullscreen and landscape mode
+  // Hide arrow in fullscreen and landscape mode (mobile only)
   .intro--fullscreen &,
   .intro--landscape & {
-    display: none;
+    @media screen and (max-width: 1024px) {
+      display: none;
+    }
   }
 }
 
@@ -236,7 +302,7 @@ body.landscape-fullscreen {
   position: fixed !important;
   width: 100% !important;
   height: 100% !important;
-  height: calc(100dvh - 3px) !important; // Use dynamic viewport height for iOS Safari
+  height: calc(100dvh - 3px) !important;
   top: 0 !important;
   left: 0 !important;
   
@@ -294,5 +360,43 @@ body.landscape-fullscreen {
     width: 100% !important;
     height: 100% !important;
     height: calc(100dvh - 3px) !important;
+  }
+}
+
+.intro__android-tap-hint {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 200;
+  animation: fadeInOut 3s ease-in-out;
+  cursor: pointer;
+  
+  .hint-content {
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 15px 20px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    text-align: center;
+    
+    &:hover {
+      background: rgba(0, 0, 0, 0.9);
+      transform: scale(1.05);
+    }
+    
+    .hint-icon {
+      font-size: 20px;
+    }
+    
+    .hint-text {
+      font-weight: 500;
+    }
   }
 }
