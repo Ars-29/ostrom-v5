@@ -55,39 +55,107 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
     }
   }, [hasStarted]);
 
-  // Handle body scroll locking and navbar hiding in landscape mode
+  // Handle body scroll locking and navbar hiding ONLY in landscape mode
   useEffect(() => {
-    if (isMobile && isLandscape) {
-      // Request fullscreen mode (like YouTube) to hide browser UI
+    if (isLandscape) {
+      // Scroll to top first to ensure proper positioning
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      
+      // Request fullscreen mode automatically to hide browser UI
       const requestFullscreen = async () => {
         const introElement = document.getElementById('intro-trigger');
-        if (introElement && !document.fullscreenElement) {
+        
+        // Detect iPhone/iOS Safari
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        
+        // Try multiple approaches aggressively
+        const tryFullscreen = async (element: HTMLElement) => {
           try {
-            if (introElement.requestFullscreen) {
-              await introElement.requestFullscreen();
-            } else if ((introElement as any).webkitRequestFullscreen) {
-              // iOS Safari webkit prefix
-              await (introElement as any).webkitRequestFullscreen();
-            } else if ((introElement as any).mozRequestFullScreen) {
-              // Firefox
-              await (introElement as any).mozRequestFullScreen();
-            } else if ((introElement as any).msRequestFullscreen) {
-              // IE/Edge
-              await (introElement as any).msRequestFullscreen();
+            if (element.requestFullscreen) {
+              await element.requestFullscreen();
+              return true;
+            } else if ((element as any).webkitRequestFullscreen) {
+              // iOS Safari specific
+              await (element as any).webkitRequestFullscreen();
+              return true;
+            } else if ((element as any).webkitRequestFullscreen) {
+              // Alternative iOS method
+              await (element as any).webkitRequestFullscreen();
+              return true;
+            } else if ((element as any).mozRequestFullScreen) {
+              await (element as any).mozRequestFullScreen();
+              return true;
+            } else if ((element as any).msRequestFullscreen) {
+              await (element as any).msRequestFullscreen();
+              return true;
             }
           } catch (error) {
-            console.log('Fullscreen not supported or failed:', error);
+            console.log('Fullscreen attempt failed:', error);
+          }
+          return false;
+        };
+
+        // iPhone-specific approach: try video element directly
+        if (isIOS && videoRef.current) {
+          try {
+            if ((videoRef.current as any).webkitEnterFullscreen) {
+              await (videoRef.current as any).webkitEnterFullscreen();
+              return;
+            }
+          } catch (error) {
+            console.log('iPhone video fullscreen failed:', error);
+          }
+        }
+
+        // Try intro element first
+        if (introElement && !document.fullscreenElement) {
+          const success = await tryFullscreen(introElement);
+          if (!success) {
+            // Fallback to document element
+            await tryFullscreen(document.documentElement);
           }
         }
       };
       
+      // Try fullscreen immediately and retry periodically
       requestFullscreen();
+      
+      // iPhone-specific: Add user gesture listener for fullscreen
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      let userGestureTriggered = false;
+      
+      const handleIOSUserGesture = () => {
+        if (!userGestureTriggered && isIOS) {
+          userGestureTriggered = true;
+          requestFullscreen();
+          // Remove listeners after first interaction
+          document.removeEventListener('touchstart', handleIOSUserGesture);
+          document.removeEventListener('click', handleIOSUserGesture);
+        }
+      };
+      
+      if (isIOS) {
+        document.addEventListener('touchstart', handleIOSUserGesture, { once: true });
+        document.addEventListener('click', handleIOSUserGesture, { once: true });
+      }
+      
+      // Retry fullscreen every 500ms for the first 3 seconds
+      const retryInterval = setInterval(() => {
+        if (!document.fullscreenElement) {
+          requestFullscreen();
+        } else {
+          clearInterval(retryInterval);
+        }
+      }, 500);
+      
+      // Clear retry after 3 seconds
+      setTimeout(() => clearInterval(retryInterval), 3000);
       
       // Lock body scroll aggressively - iOS Safari specific fixes
       document.body.style.overflow = 'hidden';
       document.body.style.position = 'fixed';
       document.body.style.width = '100%';
-      document.body.style.height = 'calc(100dvh - 50px)'; // Slightly smaller to prevent cropping
+      document.body.style.height = 'calc(100dvh - 3px)'; // Slightly smaller to prevent cropping
       document.body.style.top = '0';
       document.body.style.left = '0';
       document.body.style.right = '0';
@@ -102,7 +170,7 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
       html.style.overflow = 'hidden';
       html.style.position = 'fixed';
       html.style.width = '100%';
-      html.style.height = 'calc(100dvh - 1px)';
+      html.style.height = 'calc(100dvh - 3px)';
       
       // Hide navbar with important flag
       const navbar = document.querySelector('.top-header') as HTMLElement;
@@ -117,11 +185,17 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
         root.style.overflow = 'hidden';
         root.style.position = 'fixed';
         root.style.width = '100%';
-        root.style.height = 'calc(100dvh - 1px)'; // Slightly smaller to prevent cropping
+        root.style.height = 'calc(100dvh - 3px)'; // Slightly smaller to prevent cropping
         root.style.top = '0';
       }
       
       return () => {
+        // Clean up iOS event listeners
+        if (isIOS) {
+          document.removeEventListener('touchstart', handleIOSUserGesture);
+          document.removeEventListener('click', handleIOSUserGesture);
+        }
+        
         // Exit fullscreen mode
         if (document.fullscreenElement) {
           try {
@@ -171,10 +245,81 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
           root.style.top = '';
         }
       };
+    } else {
+      // Portrait mode: immediately exit fullscreen and reset all styles
+      
+      // Exit fullscreen mode first - be aggressive about it
+      const exitFullscreen = async () => {
+        if (document.fullscreenElement) {
+          try {
+            if (document.exitFullscreen) {
+              await document.exitFullscreen();
+            } else if ((document as any).webkitExitFullscreen) {
+              await (document as any).webkitExitFullscreen();
+            } else if ((document as any).mozCancelFullScreen) {
+              await (document as any).mozCancelFullScreen();
+            } else if ((document as any).msExitFullscreen) {
+              await (document as any).msExitFullscreen();
+            }
+          } catch (error) {
+            console.log('Exit fullscreen failed:', error);
+          }
+        }
+      };
+      
+      // Try to exit fullscreen immediately
+      exitFullscreen();
+      
+      // Also try again after a short delay to ensure it works
+      setTimeout(() => {
+        exitFullscreen();
+      }, 100);
+      
+      // Force scroll to top to ensure proper positioning
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      
+      // Reset all body styles immediately
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.overscrollBehavior = '';
+      (document.body.style as any).WebkitOverflowScrolling = '';
+      document.body.classList.remove('landscape-fullscreen');
+      
+      // Restore html element
+      const html = document.documentElement;
+      html.style.overflow = '';
+      html.style.position = '';
+      html.style.width = '';
+      html.style.height = '';
+      
+      // Show navbar again
+      const navbar = document.querySelector('.top-header') as HTMLElement;
+      if (navbar) {
+        navbar.style.display = '';
+        navbar.style.visibility = '';
+      }
+      
+      // Restore root scroll
+      const root = document.getElementById('root');
+      if (root) {
+        root.style.overflow = '';
+        root.style.position = '';
+        root.style.width = '';
+        root.style.height = '';
+        root.style.top = '';
+      }
     }
-  }, [isMobile, isLandscape]);
+  }, [isLandscape]);
 
   useEffect(() => {
+    // Don't use IntersectionObserver in landscape mode - video should play continuously
+    if (isLandscape) return;
+
     const handleIntersection = (entries: IntersectionObserverEntry[]) => {
       entries.forEach((entry) => {
         if (videoRef.current) {
@@ -203,7 +348,20 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
         observer.unobserve(videoRef.current);
       }
     };
-  }, [hasStarted]);
+  }, [hasStarted, isLandscape]);
+
+  // Ensure video plays continuously in landscape mode
+  useEffect(() => {
+    if (isLandscape && hasStarted && videoRef.current) {
+      const playPromise = videoRef.current.play();
+      if (playPromise) {
+        playPromise.catch((error) => {
+          console.log('Landscape video play failed:', error);
+          setShowPlayButton(true);
+        });
+      }
+    }
+  }, [isLandscape, hasStarted]);
 
   const scrollToContent = () => {
     window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
@@ -228,6 +386,8 @@ const Intro: React.FC<IntroProps> = ({ hasStarted }) => {
         playsInline
         preload={isMobile ? "auto" : "metadata"}
       ></video>
+      
+      
       {hasStarted && showPlayButton && (
         <div className="intro__play-button" onClick={handlePlayClick}>
           <div className="play-icon">
