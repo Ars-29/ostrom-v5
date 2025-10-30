@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 
 export interface LabelInfoState {
   [scene: string]: {
@@ -20,8 +20,26 @@ export const useLabelInfo = () => {
   return ctx;
 };
 
+const STORAGE_KEY = 'labelInfoState:v1';
+
 export const LabelInfoProvider = ({ children }: { children: ReactNode }) => {
-  const [state, setState] = useState<LabelInfoState>({});
+  const [state, setState] = useState<LabelInfoState>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as LabelInfoState) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Persist to localStorage on change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // ignore quota errors
+    }
+  }, [state]);
 
   const markClicked = (scene: string, labelId: string) => {
     setState(prev => ({

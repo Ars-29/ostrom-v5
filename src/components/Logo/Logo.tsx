@@ -5,9 +5,10 @@ import { useScrollProgress } from '../../contexts/ScrollProgressContext';
 
 interface LogoProps {
   className?: string;
+  onClick?: () => void;
 }
 
-const Logo:FC<LogoProps> = ({className}) => {
+const Logo:FC<LogoProps> = ({className, onClick}) => {
   const scrollProgress = useScrollProgress();
   const [rotation, setRotation] = useState(0);
   const [velocity, setVelocity] = useState(0);
@@ -39,14 +40,11 @@ const Logo:FC<LogoProps> = ({className}) => {
   }, []);
 
   const handleLogoClick = () => {
-      window.scrollTo({ top: 0, behavior: "instant" });
-      /*
-    if (lenis) {
-      lenis.scrollTo(0, { duration: 5, easing: (t: number) => 0.5 - 0.5 * Math.cos(Math.PI * t) }); // easeInOutSine
-    } else {
-      window.scrollTo({ top: 0, behavior: "instant" });
+    if (onClick) {
+      onClick();
+      return;
     }
-      */
+    window.scrollTo({ top: 0, behavior: "instant" });
   };
 
   return (

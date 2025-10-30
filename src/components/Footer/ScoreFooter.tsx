@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLabelInfo } from '../../contexts/LabelInfoContext';
 import TrophyImg1 from '../../../public/images/trophy_1.png';
 import TrophyImg2 from '../../../public/images/trophy_2.png';
@@ -20,6 +21,7 @@ const sceneLabelCounts: Record<SceneKey, number> = {
 
 const ScoreFooter: React.FC = () => {
   const { state } = useLabelInfo();
+  const navigate = useNavigate();
   const totalLabels = Object.values(sceneLabelCounts).reduce((a, b) => a + b, 0);
   const totalFound = Object.keys(sceneLabelCounts).reduce((sum, scene) => sum + (Object.values(state[scene] || {}).filter(Boolean).length), 0);
 
@@ -57,7 +59,7 @@ const ScoreFooter: React.FC = () => {
             <br />Our private Discord is reserved for those who see beyond the surface - a space for curated conversations, early access, and privileged insights.
           </div>
             <div className='footer-text'>
-                <a href="https://discord.gg/9N7BwaTp" target='_blank' className='btn'>Join the Ström Discord</a>
+                <button className='btn' onClick={() => navigate('/connoisseurs')}>Accès chambre secrète</button>
             </div>
         </div>
       ) : (

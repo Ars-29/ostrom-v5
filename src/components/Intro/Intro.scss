@@ -3,6 +3,12 @@
   width: 100%;
   height: var(--app-height);
   z-index: 50;
+
+  
+  
+    @media screen and (min-width: 1025px) {
+      margin-top: 82px; /* desktop navbar height */
+    }
   
   &.intro--fullscreen {
     position: fixed;
@@ -39,7 +45,7 @@
       // Normal layout, navbar visible, scrollable
       position: relative;
       width: 100%;
-      margin-top: 60px; // Account for header height
+      margin-top: 61px; // Account for header height
       height: auto;
       min-height: auto;
       display: block;

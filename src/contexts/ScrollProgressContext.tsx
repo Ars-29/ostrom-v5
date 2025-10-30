@@ -4,7 +4,7 @@ const ScrollProgressContext = createContext(0);
 
 // Throttle function to limit scroll event frequency
 const throttle = (func: Function, delay: number) => {
-  let timeoutId: number;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
   let lastExecTime = 0;
   
   return (...args: any[]) => {
@@ -14,7 +14,7 @@ const throttle = (func: Function, delay: number) => {
       func(...args);
       lastExecTime = currentTime;
     } else {
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
         func(...args);
         lastExecTime = Date.now();

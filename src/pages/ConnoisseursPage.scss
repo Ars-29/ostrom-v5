@@ -1,0 +1,210 @@
+.connoisseurs {
+  min-height: 100vh;
+  background: #E8E3DA;
+  padding-top: 83px; /* same as .top-header height */
+}
+
+@media (max-width: 767px) {
+  .connoisseurs {
+    padding-top: 60px; /* mobile header height */
+  }
+}
+
+.connoisseurs__hero {
+  width: 100%;
+  margin-bottom: 3rem; /* 12 */
+  background: #000; /* avoid light bands when letterboxed */
+}
+
+.connoisseurs__video {
+  width: 100%;
+  height: 100dvh; /* fill viewport height */
+  max-height: var(--app-height, 100dvh);
+  object-fit: cover; /* full-bleed, no side black bars */
+  background: #000;
+  display: block;
+}
+
+@media (max-width: 767px) {
+  .connoisseurs__video {
+    height: 60dvh; /* mobile: 60% of device viewport height */
+    max-height: 60dvh;
+  }
+}
+
+@supports not (height: 100dvh) {
+  .connoisseurs__video {
+    height: 100vh; /* fallback */
+  }
+}
+
+.connoisseurs__header {
+  padding: 3rem 1.5rem; /* py-12 px-6 */
+  text-align: center;
+}
+
+.connoisseurs__title {
+  margin-bottom: 0.75rem;
+  font-family: var(--title-font); /* match TitleSection */
+  font-size: clamp(2.5rem, 6vw, 6rem);
+  font-weight: 400;
+  line-height: 1;
+  color: #574343; /* close to TitleSection filled color */
+}
+
+.connoisseurs__divider-img {
+  display: block;
+  margin: 0.5rem auto 1.5rem;
+  max-width: 500px;
+  width: 400px;
+  height: auto;
+  opacity: 1;
+}
+
+@media (max-width: 767px) {
+  .connoisseurs__divider-img {
+    width: 70%;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.connoisseurs__divider {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem; /* 4 */
+  margin-bottom: 1.5rem; /* 6 */
+}
+
+.connoisseurs__divider-line {
+  height: 1px;
+  width: 10rem; /* w-24 */
+  background: #2A2520;
+}
+
+.connoisseurs__divider-star {
+  font-size: 1.5rem; /* text-2xl */
+  line-height: 1;
+}
+
+.connoisseurs__lead {
+  max-width: 42rem; /* 2xl */
+  margin: 0 auto;
+  font-family: var(--body-font);
+  color: #2A2520;
+  text-align: center;
+}
+
+.connoisseurs__main {
+  max-width: 80rem; /* 7xl */
+  margin: 0 auto;
+  padding: 0 1.5rem; /* px-6 */
+  padding-bottom: 5rem; /* pb-20 */
+}
+
+.connoisseurs__intro {
+  margin-bottom: 5rem; /* mb-20 */
+  max-width: 48rem; /* 3xl */
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.connoisseurs__text {
+  color: #2A2520;
+  line-height: 1.65; /* leading-relaxed */
+}
+
+.connoisseurs__text + .connoisseurs__text {
+  margin-top: 1rem; /* spacing between paragraphs if stacked */
+}
+
+.connoisseurs__landscape {
+  margin-bottom: 5rem; /* mb-20 */
+}
+
+.connoisseurs__image-wrap {
+  margin-bottom: 2rem; /* mb-8 */
+}
+
+.connoisseurs__image-landscape {
+  width: 100%;
+  aspect-ratio: 1 / 1; /* aspect-square on mobile */
+  object-fit: cover;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05); /* shadow-lg */
+}
+
+@media (min-width: 768px) {
+  .connoisseurs__image-landscape {
+    aspect-ratio: auto; /* md:aspect-auto */
+    height: 500px; /* md:h-[500px] */
+  }
+}
+
+.connoisseurs__section-body {
+  max-width: 48rem; /* 3xl */
+  margin: 0 auto;
+}
+
+.connoisseurs__grid-two {
+  margin-bottom: 2rem; /* mb-8 */
+  display: grid;
+  gap: 3rem; /* gap-12 */
+}
+
+@media (min-width: 768px) {
+  .connoisseurs__grid-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* md:grid-cols-2 */
+  }
+}
+
+.connoisseurs__portrait {
+  width: 100%;
+  height: 600px;
+  object-fit: cover;
+  border-radius: 0.5rem; /* rounded-lg */
+  box-shadow: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05); /* shadow-lg */
+  margin-bottom: 1.5rem; /* mb-6 */
+}
+
+.connoisseurs__h2,
+.connoisseurs__h3 {
+  color: #2A2520;
+}
+
+.connoisseurs__h2 { margin-bottom: 1rem; }
+.connoisseurs__h3 { margin-bottom: 0.75rem; }
+
+.connoisseurs__closing {
+  max-width: 48rem; /* 3xl */
+  margin: 0 auto;
+  text-align: center;
+}
+
+.connoisseurs__closing-divider {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem; /* mb-8 */
+}
+
+.connoisseurs__footer {
+  padding: 3rem 0; /* py-12 */
+  text-align: center;
+  border-top: 1px solid rgba(42, 37, 32, 0.2); /* border-[#2A2520]/20 */
+}
+
+.connoisseurs__footer-text { color: #2A2520; }
+
+.top-header .loader-logo,
+.top-header .logo,
+.top-header .logo-image {
+  pointer-events: auto !important;
+  cursor: pointer;
+}
+
+
