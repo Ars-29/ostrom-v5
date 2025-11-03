@@ -49,7 +49,7 @@ const ScoreFooter: React.FC = () => {
           );
         })}
       </div>
-      {(totalFound !== totalLabels) ? (
+      {(totalFound === totalLabels) ? (
         <div className='footer-text'>
           <h2 className='text'>
             Congratulations, you've unlocked all the secrets !
